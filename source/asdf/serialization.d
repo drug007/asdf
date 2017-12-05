@@ -1237,6 +1237,12 @@ void serializeValue(S)(ref S serializer, bool value)
 	serializer.putValue(value);
 }
 
+/// Char serialization
+void serializeValue(S)(ref S serializer, char value)
+{
+	serializer.putValue([value]);
+}
+
 ///
 unittest
 {
@@ -1844,6 +1850,13 @@ void deserializeValue(V)(Asdf data, ref V value)
 		default:
 			throw new DeserializationException(kind);
 	}
+}
+
+/// Deserialize single char
+void deserializeValue(V)(Asdf data, V value) if (is (V : char))
+{
+	auto v = cast(char[1])[value];
+	deserializeValue(data, v);
 }
 
 ///
