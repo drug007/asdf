@@ -1541,7 +1541,7 @@ void serializeValue(S, N)(ref S serializer, auto ref N value)
 		serializer.putValue(null);
 		return;
 	}
-	serializer.putValue(value.get);
+	serializer.serializeValue(value.get);
 }
 
 /// Aggregation type serialization
