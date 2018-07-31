@@ -1972,6 +1972,17 @@ void deserializeValue(V : T[N], T, size_t N)(Asdf data, ref V value)
 static if(is(T == char))
 {
 		case string:
+			auto str = cast(immutable(char)[]) data;
+			// if source is shorter than destination fill the rest by zeros
+			// if source is longer copy only needed part of it
+			if (str.length > value.length)
+				str = str[0..value.length];
+			else
+				value[] = '\0';
+
+			import std.algorithm : copy;
+			copy(str, value[]);
+			return;
 }
 		case array:
 			auto elems = data.byElement;
@@ -1999,6 +2010,12 @@ unittest
 	assert(deserialize!(int[4])(serializeToAsdf([1, 3, 4])) == [1, 3, 4, 0]);
 	assert(deserialize!(int[2])(serializeToJson([1, 3, 4])) == [1, 3]);
 	assert(deserialize!(int[2])(serializeToAsdf([1, 3, 4])) == [1, 3]);
+
+	assert(deserialize!(char[2])(serializeToAsdf(['a','b'])) == ['a','b']);
+	assert(deserialize!(char[2])(serializeToAsdf(['a','\0'])) == ['a','\0']);
+	assert(deserialize!(char[2])(serializeToAsdf(['a','\255'])) == ['a','\255']);
+	assert(deserialize!(char[2])(serializeToAsdf(['\255'])) == ['\255','\0']);
+	assert(deserialize!(char[2])(serializeToAsdf(['\255', '\255', '\255'])) == ['\255','\255']);
 }
 
 /// AA with value of aggregate type
