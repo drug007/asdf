@@ -1836,7 +1836,7 @@ void deserializeScopedString(V)(Asdf data, ref V value)
 
 /// Deserialize string value
 void deserializeValue(V)(Asdf data, ref V value)
-	if(is(V : const(char)[]))
+	if(is(V : const(char)[]) && !isAggregateType!V)
 {
 	auto kind = data.kind;
 	with(Asdf.Kind) switch(kind)
