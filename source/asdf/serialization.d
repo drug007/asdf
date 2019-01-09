@@ -3015,6 +3015,17 @@ private template isConstField(alias aggregate, string member)
 		enum isConstField = is(typeof(A) == const) && hasAddress!(aggregate, member);
 }
 
+private template isMutableField(alias aggregate, string member)
+{
+	alias A = Identity!(__traits(getMember, aggregate, member));
+	// ignore methods
+	static if (isCallable!A)
+		enum isMutableField = false;
+	else
+		// in contrast to enums and static members const members have address.
+		enum isMutableField = hasAddress!(aggregate, member);
+}
+
 // check if the member is property
 private template isProperty(alias aggregate, string member)
 {
@@ -3054,7 +3065,7 @@ private template Serializable(alias value, string member)
 	static if (isReadableAndWritable!(value, member))
 		enum Serializable = true;
 	else
-	static if (isConstField!(value, member))
+	static if (isMutableField!(value, member))
 		enum Serializable = true;
 	else
 	static if (isReadable!(value, member))
