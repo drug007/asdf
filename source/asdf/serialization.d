@@ -1893,7 +1893,7 @@ void serializeValue(S, V)(ref S serializer, auto ref V value)
 				}
 				else
 				{
-					serializer.serializeValue(val);
+					serializer.serializeValue(cast() val);
 				}
 			}
 		}
