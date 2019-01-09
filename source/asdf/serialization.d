@@ -1905,6 +1905,20 @@ void serializeValue(S, V)(ref S serializer, auto ref V value)
 	}
 }
 
+/// Check for const data serializing 
+unittest
+{
+	static struct Foo
+	{
+		int i104, j105;
+	}
+
+	const Foo foo;
+
+	assert(foo.serializeToJson == `{"i104":0,"j105":0}`);
+	assert(foo.serializeToJson.deserialize!Foo == foo);
+}
+
 unittest
 {
 	struct S
