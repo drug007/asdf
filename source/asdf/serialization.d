@@ -2991,7 +2991,14 @@ private template isNullable(T)
 
 // check if the member is readable/writeble?
 private enum isReadableAndWritable(alias aggregate, string member) = __traits(compiles, __traits(getMember, aggregate, member) = __traits(getMember, aggregate, member));
-private enum isPublic(alias aggregate, string member) = !__traits(getProtection, __traits(getMember, aggregate, member)).privateOrPackage;
+private template isPublic(alias aggregate, string member)
+{
+	static if (!is(Identity!(__traits(getMember, aggregate, member))) &&
+		       __traits(compiles, { auto s = __traits(getProtection, __traits(getMember, aggregate, member)); }))
+			enum isPublic = !__traits(getProtection, __traits(getMember, aggregate, member)).privateOrPackage;
+	else
+		enum isPublic = false;
+}
 private enum isMemberStatic(T, string member) = __traits(compiles, { auto a = mixin("T." ~ member); });
 private enum hasAddress(alias aggregate, string member) = __traits(compiles, { auto a = &__traits(getMember, aggregate, member); });
 
