@@ -1712,7 +1712,8 @@ unittest
 }
 
 /// Deserialize boolean value
-void deserializeValue(Asdf data, ref bool value)
+void deserializeValue(V)(Asdf data, ref V value)
+	if (is(V == bool))
 {
 	auto kind = data.kind;
 	with(Asdf.Kind) switch(kind)
@@ -1733,6 +1734,20 @@ unittest
 {
 	assert(deserialize!bool(serializeToAsdf(true)));
 	assert(deserialize!bool(serializeToJson(true)));
+}
+
+///
+unittest
+{
+	static struct Test
+	{
+		bool value;
+		alias value this;
+	}
+
+	Test test;
+	assert(serializeToJson(test) == `{"value":false}`);
+	assert(deserialize!Test(`{"value":true}}`) == Test(true));
 }
 
 /// Deserialize numeric value
