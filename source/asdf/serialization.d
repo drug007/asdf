@@ -2069,7 +2069,8 @@ unittest
 }
 
 /// Deserialize boolean value
-void deserializeValue(Asdf data, ref bool value) pure @safe
+void deserializeValue(V)(Asdf data, ref V value)
+	if (is(V == bool))
 {
 	auto kind = data.kind;
 	with(Asdf.Kind) switch(kind)
