@@ -338,7 +338,6 @@ unittest
 	assert(serializeToJson(S("str", 4)) == `{"foo":"str","bar":4}`);
 }
 
-
 /// JSON serialization function with pretty formatting.
 string serializeToJsonPretty(string sep = "\t", V)(auto ref V value)
 {
@@ -1648,6 +1647,109 @@ unittest
 	assert(serializeToJson((uint[string]).init) == `null`);
 }
 
+///
+unittest
+{
+	static struct S
+	{
+		static string static_string = "me shouldn't be serialized at all!";
+		string str = "me shall be serialized";
+
+		static @property staticProperty()
+		{
+			return static_string;
+		}
+
+		enum A = 200;
+		const float B = 10f;
+		float f;
+		int i;
+
+		this(float f, int i)
+		{
+			this.f = f;
+			this.i = i;
+		}
+
+		bool opEquals()(auto ref const(typeof(this)) rhs)
+		{
+			import std.math : isNaN;
+
+			if (f.isNaN && rhs.f.isNaN)
+			{
+				// if both f are nan then they are equal
+			}
+			else if (f != rhs.f)
+				return false;
+
+			return str == rhs.str && i == rhs.i;
+		}
+	}
+
+	assert (S.staticProperty == S.static_string);
+
+	{
+		auto asdf = serializeToAsdf(S());
+		assert (asdf.text == `{"str":"me shall be serialized","B":10,"f":"nan","i":0}`);
+		assert (S() == deserialize!S(asdf));
+	}
+
+	{
+		auto s = S(22f, 100);
+		auto json = serializeToJson(s);
+		assert (json.text == `{"str":"me shall be serialized","B":10,"f":22,"i":100}`);
+		assert (s == deserialize!S(json));
+	}
+}
+
+///
+unittest
+{
+	struct Nested
+	{
+		int[] iarr;
+	}
+
+	struct S
+	{
+		enum E = 100;
+
+		// will be serialized because it's a field
+		// without private or package protection
+		Nested nested;
+
+		// won't be serialized due to private protection
+		private int private_field;
+		// will be serialized as it's getter property
+		@property privateField() { return private_field; }
+		// won't be serialized as it's setter property
+		@property privateField(int v) { private_field = v; }
+
+		// will be serialized as it's a field and has no
+		// private or package protection
+		protected int protected_field;
+		// will be serialized as it's getter property
+		@property protectedField() { return protected_field; }
+		// won't be serialized as it's setter property
+		@property protectedField(int v) { protected_field = v; }
+
+		// won't be serialized because it's a regular method (not a
+		// property)
+		void toMsgpack(Packer)(ref Packer packer)
+		{
+
+		}
+
+		// won't be serialized because it's a regular method (not a
+		// property)
+		int getPrivateField()
+		{
+			return private_field;
+		}
+	}
+	assert (serializeToJson(S()) == `{"nested":{"iarr":null},"privateField":0,"protected_field":0,"protectedField":0}`);
+}
+
 /// integral typed value associative array serialization
 void serializeValue(S, T, K)(ref S serializer, auto ref T[K] value)
 	if((isIntegral!K) && !is(K == enum))
@@ -1677,7 +1779,109 @@ unittest
 	ar.remove(256);
 	assert(serializeToJson(ar) == `{}`);
 	assert(serializeToJson((uint[string]).init) == `null`);
-	assert(deserialize!(uint[short])(`{"256":1}`) == cast(uint[short]) [256 : 1]);
+}
+
+///
+unittest
+{
+	static struct S
+	{
+		static string static_string = "me shouldn't be serialized at all!";
+		string str = "me shall be serialized";
+
+		static @property staticProperty()
+		{
+			return static_string;
+		}
+
+		enum A = 200;
+		const float B = 10f;
+		float f;
+		int i;
+
+		this(float f, int i)
+		{
+			this.f = f;
+			this.i = i;
+		}
+
+		bool opEquals()(auto ref const(typeof(this)) rhs)
+		{
+			import std.math : isNaN;
+
+			if (f.isNaN && rhs.f.isNaN)
+			{
+				// if both f are nan then they are equal
+			}
+			else if (f != rhs.f)
+				return false;
+
+			return str == rhs.str && i == rhs.i;
+		}
+	}
+
+	assert (S.staticProperty == S.static_string);
+
+	{
+		auto asdf = serializeToAsdf(S());
+		assert (asdf.text == `{"str":"me shall be serialized","B":10,"f":"nan","i":0}`);
+		assert (S() == deserialize!S(asdf));
+	}
+
+	{
+		auto s = S(22f, 100);
+		auto json = serializeToJson(s);
+		assert (json.text == `{"str":"me shall be serialized","B":10,"f":22,"i":100}`);
+		assert (s == deserialize!S(json));
+	}
+}
+
+///
+unittest
+{
+	struct Nested
+	{
+		int[] iarr;
+	}
+
+	struct S
+	{
+		enum E = 100;
+
+		// will be serialized because it's a field
+		// without private or package protection
+		Nested nested;
+
+		// won't be serialized due to private protection
+		private int private_field;
+		// will be serialized as it's getter property
+		@property privateField() { return private_field; }
+		// won't be serialized as it's setter property
+		@property privateField(int v) { private_field = v; }
+
+		// will be serialized as it's a field and has no
+		// private or package protection
+		protected int protected_field;
+		// will be serialized as it's getter property
+		@property protectedField() { return protected_field; }
+		// won't be serialized as it's setter property
+		@property protectedField(int v) { protected_field = v; }
+
+		// won't be serialized because it's a regular method (not a
+		// property)
+		void toMsgpack(Packer)(ref Packer packer)
+		{
+
+		}
+
+		// won't be serialized because it's a regular method (not a
+		// property)
+		int getPrivateField()
+		{
+			return private_field;
+		}
+	}
+	assert (serializeToJson(S()) == `{"nested":{"iarr":null},"privateField":0,"protected_field":0,"protectedField":0}`);
 }
 
 /// Nullable type serialization
@@ -1744,10 +1948,10 @@ void serializeValue(S, V)(ref S serializer, auto ref V value)
 		auto state = serializer.objectBegin();
 		foreach(member; SerializableMembers!value)
 		{
-			enum udas = [getUDAs!(__traits(getMember, value, member), Serialization)];
+			enum udas = [getUDAs!(__traits(getMember, V, member), Serialization)];
 			static if(!ignoreOut(udas))
 			{
-				static if(hasTransformOut!(__traits(getMember, value, member)))
+				static if(hasTransformOut!(__traits(getMember, V, member)))
 				{
 					alias f = unaryFun!(getTransformOut!(__traits(getMember, value, member)));
 					auto val = f(__traits(getMember, value, member));
@@ -1799,7 +2003,7 @@ void serializeValue(S, V)(ref S serializer, auto ref V value)
 					serializer.objectEnd(valState);
 				}
 				else
-				static if(hasSerializedAs!(__traits(getMember, value, member)))
+				static if(hasSerializedAs!(__traits(getMember, V, member)))
 				{
 					alias Proxy = getSerializedAs!(__traits(getMember, value, member));
 					serializer.serializeValue(val.to!Proxy);
@@ -1816,6 +2020,20 @@ void serializeValue(S, V)(ref S serializer, auto ref V value)
 		}
 		serializer.objectEnd(state);
 	}
+}
+
+/// Check for const data serializing 
+unittest
+{
+	static struct Foo
+	{
+		int i104, j105;
+	}
+
+	const Foo foo;
+
+	assert(foo.serializeToJson == `{"i104":0,"j105":0}`);
+	assert(foo.serializeToJson.deserialize!Foo == foo);
 }
 
 unittest
@@ -1872,6 +2090,20 @@ pure unittest
 {
 	assert(deserialize!bool(serializeToAsdf(true)));
 	assert(deserialize!bool(serializeToJson(true)));
+}
+
+///
+unittest
+{
+	static struct Test
+	{
+		bool value;
+		alias value this;
+	}
+
+	Test test;
+	assert(serializeToJson(test) == `{"value":false}`);
+	assert(deserialize!Test(`{"value":true}}`) == Test(true));
 }
 
 /// Deserialize numeric value
@@ -2439,7 +2671,7 @@ void deserializeValue(V)(Asdf data, ref V value)
 		struct RequiredFlags
 		{
 			static foreach(member; DeserializableMembers!value)
-				static if (hasRequired([getUDAs!(__traits(getMember, value, member), Serialization)]))
+				static if (hasRequired([getUDAs!(__traits(getMember, V, member), Serialization)]))
 					mixin ("bool " ~ member ~ ";");
 		}
 
@@ -2450,7 +2682,7 @@ void deserializeValue(V)(Asdf data, ref V value)
 			{
 				foreach(member; DeserializableMembers!value)
 				{
-						enum udas = [getUDAs!(__traits(getMember, value, member), Serialization)];
+						enum udas = [getUDAs!(__traits(getMember, V, member), Serialization)];
 						enum F = isFlexible(V.stringof, member, udas);
 						static if(!ignoreIn(udas))
 						{
@@ -2463,7 +2695,7 @@ void deserializeValue(V)(Asdf data, ref V value)
 							static if (hasRequired(udas))
 								__traits(getMember, requiredFlags, member) = true;
 
-							static if(!isReadableAndWritable!(value, member))
+							static if(isSetterProperty!(value, member))
 							{
 								alias Type = Unqual!(Parameters!(__traits(getMember, value, member)));
 							}
@@ -2502,7 +2734,7 @@ void deserializeValue(V)(Asdf data, ref V value)
 								}
 							}
 							else
-							static if(hasSerializedAs!(__traits(getMember, value, member)))
+							static if(hasSerializedAs!(__traits(getMember, V, member)))
 							{
 								alias Proxy = getSerializedAs!(__traits(getMember, value, member));
 								Proxy proxy;
@@ -2511,6 +2743,12 @@ void deserializeValue(V)(Asdf data, ref V value)
 
 								Fun(elem.value, proxy);
 								__traits(getMember, value, member) = proxy.to!Type;
+							}
+							else
+							static if (isConstField!(value, member))
+							{
+								// do nothing because we
+								// do not deserialize const members
 							}
 							else
 							static if(isReadableAndWritable!(value, member) && __traits(compiles, {auto ptr = &__traits(getMember, value, member); }))
@@ -2527,11 +2765,18 @@ void deserializeValue(V)(Asdf data, ref V value)
 								enum S = isScoped(V.stringof, member, udas) && __traits(compiles, .deserializeScopedString(elem.value, val));
 								alias Fun = Select!(F, Flex, Select!(S, .deserializeScopedString, .deserializeValue));
 
-								Fun(elem.value, val);
-								__traits(getMember, value, member) = val;
+								static if(is(Type == const) || is(Type == immutable))
+								{
+									// do not deserialize const/immutable members
+								}
+								else
+								{
+									Fun(elem.value, val);
+									__traits(getMember, value, member) = val;
+								}
 							}
 
-							static if(hasTransformIn!(__traits(getMember, value, member)))
+							static if(hasTransformIn!(__traits(getMember, V, member)))
 							{
 								alias f = unaryFun!(getTransformIn!(__traits(getMember, value, member)));
 								__traits(getMember, value, member) = f(__traits(getMember, value, member));
@@ -2546,11 +2791,11 @@ void deserializeValue(V)(Asdf data, ref V value)
 		}
 		foreach(member; DeserializableMembers!value)
 		try {
-			enum udas = [getUDAs!(__traits(getMember, value, member), Serialization)];
+			enum udas = [getUDAs!(__traits(getMember, V, member), Serialization)];
 			enum F = isFlexible(V.stringof, member, udas);
 			static if(!ignoreIn(udas))
 			{
-				enum target = [getUDAs!(__traits(getMember, value, member), SerializationGroup)];
+				enum target = [getUDAs!(__traits(getMember, V, member), SerializationGroup)];
 				static if(target.length)
 				{
 					static assert(target.length == 1, member ~ ": only one @serializationKeysIn(string[][]...) is allowed.");
@@ -2951,7 +3196,40 @@ private template isNullable(T)
 
 // check if the member is readable/writeble?
 private enum isReadableAndWritable(alias aggregate, string member) = __traits(compiles, __traits(getMember, aggregate, member) = __traits(getMember, aggregate, member));
-private enum isPublic(alias aggregate, string member) = !__traits(getProtection, __traits(getMember, aggregate, member)).privateOrPackage;
+private template isPublic(alias aggregate, string member)
+{
+	static if (!is(Identity!(__traits(getMember, aggregate, member))) &&
+		       __traits(compiles, { auto s = __traits(getProtection, __traits(getMember, aggregate, member)); }))
+			enum isPublic = !__traits(getProtection, __traits(getMember, aggregate, member)).privateOrPackage;
+	else
+		enum isPublic = false;
+}
+private enum isMemberStatic(T, string member) = __traits(compiles, { auto a = mixin("T." ~ member); });
+private enum hasAddress(alias aggregate, string member) = __traits(compiles, { auto a = &__traits(getMember, aggregate, member); });
+
+private alias Identity(alias A) = A;
+
+private template isConstField(alias aggregate, string member)
+{
+	alias A = Identity!(__traits(getMember, aggregate, member));
+	// ignore methods
+	static if (isCallable!A)
+		enum isConstField = false;
+	else
+		// in contrast to enums and static members const members have address.
+		enum isConstField = is(typeof(A) == const) && hasAddress!(aggregate, member);
+}
+
+private template isMutableField(alias aggregate, string member)
+{
+	alias A = Identity!(__traits(getMember, aggregate, member));
+	// ignore methods
+	static if (isCallable!A)
+		enum isMutableField = false;
+	else
+		// in contrast to enums and static members const members have address.
+		enum isMutableField = hasAddress!(aggregate, member);
+}
 
 // check if the member is property
 private template isProperty(alias aggregate, string member)
@@ -2961,6 +3239,17 @@ private template isProperty(alias aggregate, string member)
 	else
 		enum isProperty = false;
 }
+
+// check if the member is property
+private template isSetterProperty(alias aggregate, string member)
+{
+	static if(isSomeFunction!(__traits(getMember, aggregate, member)))
+		enum isSetterProperty = (functionAttributes!(__traits(getMember, aggregate, member)) & FunctionAttribute.property) &&
+			Parameters!(__traits(getMember, aggregate, member)).length == 1;
+	else
+		enum isSetterProperty = false;
+}
+
 // check if the member is readable
 private enum isReadable(alias aggregate, string member) = __traits(compiles, { auto _val = __traits(getMember, aggregate, member); });
 
@@ -2968,10 +3257,20 @@ private enum isReadable(alias aggregate, string member) = __traits(compiles, { a
 // public members that are either readable and writable or getter properties
 private template Serializable(alias value, string member)
 {
+	// skip hidden pointer of nested structures
+	static if (member == "this")
+		enum Serializable = false;
+	else
 	static if (!isPublic!(value, member))
 		enum Serializable = false;
 	else
+	static if (isMemberStatic!(typeof(value), member))
+		enum Serializable = false;
+	else
 	static if (isReadableAndWritable!(value, member))
+		enum Serializable = true;
+	else
+	static if (isMutableField!(value, member))
 		enum Serializable = true;
 	else
 	static if (isReadable!(value, member))
@@ -2994,10 +3293,20 @@ private template SerializableMembers(alias value)
 // public members that are either readable and writable or setter properties
 private template Deserializable(alias value, string member)
 {
+	// skip hidden pointer of nested structures
+	static if (member == "this")
+		enum Deserializable = false;
+	else
 	static if (!isPublic!(value, member))
 		enum Deserializable = false;
 	else
+	static if (isMemberStatic!(typeof(value), member))
+		enum Deserializable = false;
+	else
 	static if (isReadableAndWritable!(value, member))
+		enum Deserializable = true;
+	else
+	static if (isConstField!(value, member))
 		enum Deserializable = true;
 	else
 	static if (isProperty!(value, member))
