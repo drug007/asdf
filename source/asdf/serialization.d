@@ -2010,7 +2010,7 @@ void serializeValue(S, V)(ref S serializer, auto ref V value)
 				}
 				else
 				{
-					serializer.serializeValue(val);
+					serializeValue(serializer, *(cast(Unqual!(typeof(val))*)(&val)));
 				}
 			}
 		}
